@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
 import { JournalEntryForm } from './journal/JournalEntryForm';
 import { JournalEntriesList } from './journal/JournalEntriesList';
 
@@ -21,29 +20,28 @@ const JournalPage: React.FC = () => {
 
   useEffect(() => {
     if (!user) return;
-    
-    const fetchJournalEntries = async () => {
+
+    const fetchJournalEntries = () => {
       try {
-        const { data, error } = await supabase
-          .from('journal_entries')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('date', { ascending: false });
-          
-        if (error) throw error;
-        
-        if (data) {
-          const formattedEntries: JournalEntry[] = data.map(entry => ({
+        // Get entries from localStorage
+        const storedEntries = localStorage.getItem(`journal_entries_${user.id}`);
+
+        if (storedEntries) {
+          const parsedEntries = JSON.parse(storedEntries);
+          const formattedEntries: JournalEntry[] = parsedEntries.map((entry: any) => ({
             id: entry.id,
             date: new Date(entry.date),
             content: entry.content,
             mood: entry.mood || 'Unspecified'
           }));
-          
+
+          // Sort by date descending
+          formattedEntries.sort((a, b) => b.date.getTime() - a.date.getTime());
+
           setEntries(formattedEntries);
         }
       } catch (error) {
-        console.error('Error loading journal entries:', error);
+        console.error('Error loading journal entries from localStorage:', error);
         toast({
           title: 'Error',
           description: 'Failed to load journal entries',
@@ -53,31 +51,34 @@ const JournalPage: React.FC = () => {
         setIsLoading(false);
       }
     };
-    
-    const createJournalTable = async () => {
-      try {
-        const { error } = await supabase
-          .from('journal_entries')
-          .select('id')
-          .limit(1);
-          
-        if (error) {
-          const { error: sqlError } = await supabase.rpc('create_journal_entries_table');
-          if (sqlError) throw sqlError;
-        }
-        
-        fetchJournalEntries();
-      } catch (error) {
-        console.error('Error checking/creating journal table:', error);
-        setIsLoading(false);
-      }
-    };
-    
-    createJournalTable();
+
+    fetchJournalEntries();
   }, [user, toast]);
 
   const handleEntrySave = (newEntry: JournalEntry) => {
-    setEntries([newEntry, ...entries]);
+    // Add the new entry to the state
+    const updatedEntries = [newEntry, ...entries];
+    setEntries(updatedEntries);
+
+    // Save to localStorage if user is logged in
+    if (user) {
+      try {
+        localStorage.setItem(
+          `journal_entries_${user.id}`,
+          JSON.stringify(updatedEntries.map(entry => ({
+            ...entry,
+            date: entry.date.toISOString() // Convert Date to string for storage
+          })))
+        );
+      } catch (error) {
+        console.error('Error saving to localStorage:', error);
+        toast({
+          title: 'Warning',
+          description: 'Entry saved locally but may not persist after browser close',
+          variant: 'destructive',
+        });
+      }
+    }
   };
 
   if (isLoading) {
@@ -91,12 +92,12 @@ const JournalPage: React.FC = () => {
   return (
     <div className="max-w-5xl mx-auto">
       <h1 className="text-2xl font-poppins font-semibold mb-6 text-sage">Journal</h1>
-      
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
           <JournalEntryForm onEntrySave={handleEntrySave} />
         </div>
-        
+
         <div>
           <JournalEntriesList entries={entries} />
         </div>

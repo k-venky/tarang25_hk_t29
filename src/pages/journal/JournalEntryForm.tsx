@@ -6,7 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Save, Calendar } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
 import { v4 as uuidv4 } from 'uuid';
 import { JOURNAL_PROMPTS, MOOD_OPTIONS } from './constants';
 
@@ -80,44 +79,24 @@ export const JournalEntryForm: React.FC<JournalEntryFormProps> = ({ onEntrySave 
         description: "Recording your journal entry",
       });
 
-      const { error } = await supabase.from('journal_entries').insert({
-        id: newEntry.id,
-        user_id: user.id,
-        date: newEntry.date.toISOString(),
-        content: newEntry.content,
-        mood: newEntry.mood
-      });
-
-      if (error) throw error;
-
+      // Pass the entry to the parent component to handle saving
       onEntrySave(newEntry);
+
+      // Clear the form
       setCurrentEntry('');
       setSelectedPrompt('');
       setSelectedMood('');
 
       toast({
         title: "Journal Entry Saved",
-        description: "Your thoughts have been recorded."
+        description: "Your thoughts have been recorded locally."
       });
     } catch (error: any) {
       console.error('Error saving journal entry:', error);
 
-      // Provide more specific error messages
-      let errorMessage = 'Failed to save journal entry';
-
-      if (error.message) {
-        if (error.message.includes('foreign key constraint')) {
-          errorMessage = 'User profile not found. Please try logging out and back in.';
-        } else if (error.message.includes('duplicate key')) {
-          errorMessage = 'Entry already exists. Please try again with different content.';
-        } else {
-          errorMessage = error.message;
-        }
-      }
-
       toast({
         title: 'Error',
-        description: errorMessage,
+        description: 'Failed to save journal entry locally',
         variant: 'destructive'
       });
     } finally {
