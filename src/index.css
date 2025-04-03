@@ -1,0 +1,117 @@
+
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&family=Roboto:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 160 23% 94%;
+    --foreground: 0 0% 20%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 20%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 20%;
+
+    --primary: 160 23% 62%; /* Sage green */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 273 30% 65%; /* Lavender */
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 160 10% 90%;
+    --muted-foreground: 0 0% 45%;
+
+    --accent: 28 100% 83%; /* Peach */
+    --accent-foreground: 0 0% 20%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 160 15% 85%;
+    --input: 160 15% 85%;
+    --ring: 160 23% 62%;
+
+    --radius: 1rem;
+  }
+
+  .dark {
+    --background: 225 6% 13%; /* Charcoal bg */
+    --foreground: 0 0% 98%;
+
+    --card: 225 5% 18%;
+    --card-foreground: 0 0% 98%;
+
+    --popover: 225 5% 18%;
+    --popover-foreground: 0 0% 98%;
+
+    --primary: 160 23% 50%; /* Darker sage for dark mode */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 273 30% 55%; /* Darker lavender for dark mode */
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 225 5% 25%;
+    --muted-foreground: 0 0% 75%;
+
+    --accent: 28 85% 70%; /* Darker peach for dark mode */
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 225 5% 25%;
+    --input: 225 5% 25%;
+    --ring: 160 23% 50%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-roboto text-base leading-relaxed;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-poppins font-semibold;
+  }
+
+  /* Custom shadow classes */
+  .shadow-soft {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  }
+
+  /* Custom transition for all interactive elements */
+  button, a, input, textarea {
+    transition: all 0.2s ease-in-out;
+  }
+}
+
+/* Custom utility classes */
+@layer components {
+  .btn-primary {
+    @apply bg-peach text-charcoal font-medium px-4 py-2 rounded-full hover:bg-opacity-90 transition-all duration-200;
+  }
+  
+  .card-mental {
+    @apply bg-white dark:bg-charcoal bg-opacity-90 dark:bg-opacity-60 rounded-2xl shadow-soft p-4 transition-all duration-300;
+  }
+
+  .chat-bubble {
+    @apply rounded-2xl p-3 max-w-[85%];
+  }
+
+  .chat-bubble-user {
+    @apply bg-sage text-white ml-auto;
+  }
+
+  .chat-bubble-bot {
+    @apply bg-gradient-to-br from-lavender/80 to-lavender/95 text-white mr-auto;
+  }
+}
