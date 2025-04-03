@@ -20,20 +20,27 @@ const MoodTracker: React.FC = () => {
   const { user } = useAuth();
 
   const handleMoodSelect = async (mood: string, moodValue: number) => {
-    setSelectedMood(mood);
-    
-    if (!user) {
-      toast({
-        title: "Not logged in",
-        description: "Please log in to save your mood.",
-        variant: "destructive"
-      });
-      return;
-    }
-    
     try {
+      // Set the selected mood immediately for UI feedback
+      setSelectedMood(mood);
+
+      if (!user) {
+        toast({
+          title: "Not logged in",
+          description: "Please log in to save your mood.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Show loading feedback
+      toast({
+        title: "Saving...",
+        description: "Recording your mood",
+      });
+
       const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-      
+
       // Check if a mood has already been logged today
       const { data: existingEntry, error: fetchError } = await supabase
         .from('mood_entries')
@@ -41,20 +48,21 @@ const MoodTracker: React.FC = () => {
         .eq('user_id', user.id)
         .eq('date', today)
         .single();
-        
+
       if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 is "not found" error
         throw fetchError;
       }
-      
+
       // Update existing entry or insert new one
       if (existingEntry) {
         const { error: updateError } = await supabase
           .from('mood_entries')
-          .update({ 
-            mood: moodValue 
+          .update({
+            mood: moodValue,
+            note: `Feeling ${mood.toLowerCase()}` // Add a default note
           })
           .eq('id', existingEntry.id);
-          
+
         if (updateError) throw updateError;
       } else {
         const { error: insertError } = await supabase
@@ -62,21 +70,36 @@ const MoodTracker: React.FC = () => {
           .insert({
             user_id: user.id,
             date: today,
-            mood: moodValue
+            mood: moodValue,
+            note: `Feeling ${mood.toLowerCase()}` // Add a default note
           });
-          
+
         if (insertError) throw insertError;
       }
-      
+
       toast({
         title: "Mood Logged",
         description: `You're feeling ${mood.toLowerCase()} today.`,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error logging mood:', error);
+
+      // Provide more specific error messages
+      let errorMessage = 'Failed to save your mood';
+
+      if (error.message) {
+        if (error.message.includes('foreign key constraint')) {
+          errorMessage = 'User profile not found. Please try logging out and back in.';
+        } else if (error.message.includes('duplicate key')) {
+          errorMessage = 'Mood already recorded for today. Try again in a moment.';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+
       toast({
         title: 'Error',
-        description: 'Failed to save your mood',
+        description: errorMessage,
         variant: 'destructive',
       });
     }

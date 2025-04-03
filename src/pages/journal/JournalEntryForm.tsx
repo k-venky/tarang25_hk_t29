@@ -34,8 +34,17 @@ export const JournalEntryForm: React.FC<JournalEntryFormProps> = ({ onEntrySave 
     setCurrentEntry(currentEntry ? currentEntry + '\n\n' + prompt + '\n' : prompt + '\n');
   };
 
+  const [isSaving, setIsSaving] = useState(false);
+
   const handleSave = async () => {
-    if (!user) return;
+    if (!user) {
+      toast({
+        title: "Not logged in",
+        description: "Please log in to save your journal entry.",
+        variant: "destructive"
+      });
+      return;
+    }
 
     if (!currentEntry.trim()) {
       toast({
@@ -46,14 +55,31 @@ export const JournalEntryForm: React.FC<JournalEntryFormProps> = ({ onEntrySave 
       return;
     }
 
+    if (!selectedMood) {
+      toast({
+        title: "Mood not selected",
+        description: "Please select how you're feeling today.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsSaving(true);
+
     const newEntry = {
       id: uuidv4(),
       date: new Date(),
       content: currentEntry,
-      mood: selectedMood || 'Unspecified'
+      mood: selectedMood
     };
 
     try {
+      // Show saving feedback
+      toast({
+        title: "Saving...",
+        description: "Recording your journal entry",
+      });
+
       const { error } = await supabase.from('journal_entries').insert({
         id: newEntry.id,
         user_id: user.id,
@@ -73,13 +99,29 @@ export const JournalEntryForm: React.FC<JournalEntryFormProps> = ({ onEntrySave 
         title: "Journal Entry Saved",
         description: "Your thoughts have been recorded."
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving journal entry:', error);
+
+      // Provide more specific error messages
+      let errorMessage = 'Failed to save journal entry';
+
+      if (error.message) {
+        if (error.message.includes('foreign key constraint')) {
+          errorMessage = 'User profile not found. Please try logging out and back in.';
+        } else if (error.message.includes('duplicate key')) {
+          errorMessage = 'Entry already exists. Please try again with different content.';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+
       toast({
         title: 'Error',
-        description: 'Failed to save journal entry',
+        description: errorMessage,
         variant: 'destructive'
       });
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -108,7 +150,7 @@ export const JournalEntryForm: React.FC<JournalEntryFormProps> = ({ onEntrySave 
             ))}
           </div>
         </div>
-        
+
         <div className="mb-4">
           <label className="block text-sm font-medium mb-2">Writing Prompts</label>
           <div className="flex flex-wrap gap-2">
@@ -125,21 +167,31 @@ export const JournalEntryForm: React.FC<JournalEntryFormProps> = ({ onEntrySave 
             ))}
           </div>
         </div>
-        
+
         <Textarea
           placeholder="What's on your mind today?"
           className="min-h-[200px] mb-4"
           value={currentEntry}
           onChange={(e) => setCurrentEntry(e.target.value)}
         />
-        
+
         <div className="flex gap-3">
-          <Button 
+          <Button
             className="bg-sage hover:bg-sage/90 flex-1 sm:flex-none"
             onClick={handleSave}
+            disabled={isSaving}
           >
-            <Save className="h-4 w-4 mr-2" />
-            Save Entry
+            {isSaving ? (
+              <>
+                <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                Saving...
+              </>
+            ) : (
+              <>
+                <Save className="h-4 w-4 mr-2" />
+                Save Entry
+              </>
+            )}
           </Button>
         </div>
       </CardContent>
